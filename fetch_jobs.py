@@ -2,10 +2,12 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import urllib3
+urllib3.disable_warning(urllib3.exceptions.InsecureRequestWarning)
 
 def scrape_bdjobs():
     url = "https://www.bdjobs.com/jobsearch.asp"
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     soup = BeautifulSoup(r.content, "html.parser")
     jobs = []
     for div in soup.select(".row.jobcontent"):
@@ -18,7 +20,7 @@ def scrape_bdjobs():
 
 def scrape_bpsc():
     url = "http://bpsc.gov.bd/site/view/notices"
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     soup = BeautifulSoup(r.content, "html.parser")
     jobs = []
     for row in soup.select(".table.table-bordered tbody tr"):
@@ -31,7 +33,7 @@ def scrape_bpsc():
 
 def scrape_bangladesh_bank():
     url = "https://erecruitment.bb.org.bd/"
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     soup = BeautifulSoup(r.content, "html.parser")
     jobs = []
     for link in soup.find_all("a", href=True):
