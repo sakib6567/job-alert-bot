@@ -2,4 +2,4 @@ streamlit
 requests
 beautifulsoup4
 pandas
-urllib3
+urllib3==1.26.18
