@@ -24,10 +24,13 @@ jobs:
       - name: Run scraper
         run: python fetch_jobs.py
 
-      - name: Commit changes
-        run: |
-          git config user.name 'Auto Scraper'
-          git config user.email 'scraper@bot.com'
-          git add daily_jobs.csv
-          git commit -m "Daily job update"
-          git push
+     - name: Push changes
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  run: |
+    git config user.name 'Auto Scraper'
+    git config user.email 'scraper@bot.com'
+    git add jobs_data.json
+    git diff --cached --quiet || git commit -m "Daily job update"
+    git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref }}
+
