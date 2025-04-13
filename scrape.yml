@@ -1,0 +1,33 @@
+
+name: Daily Job Scraper
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas
+
+      - name: Run scraper
+        run: python fetch_jobs.py
+
+      - name: Commit changes
+        run: |
+          git config user.name 'Auto Scraper'
+          git config user.email 'scraper@bot.com'
+          git add daily_jobs.csv
+          git commit -m "Daily job update"
+          git push
