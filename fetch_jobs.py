@@ -1,50 +1,78 @@
-
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 import urllib3
-urllib3.disable_warning(urllib3.exceptions.InsecureRequestWarning)
+import json
+from datetime import datetime
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def scrape_bdjobs():
-    url = "https://www.bdjobs.com/jobsearch.asp"
-    r = requests.get(url, verify=False)
+    url = "https://www.bdjobs.com/jobsearch.asp?fcatId=8&icatId="
+    r = requests.get(url)
     soup = BeautifulSoup(r.content, "html.parser")
     jobs = []
-    for div in soup.select(".row.jobcontent"):
-        title = div.select_one(".job-title-text").text.strip() if div.select_one(".job-title-text") else ""
-        company = div.select_one(".comp-name-text").text.strip() if div.select_one(".comp-name-text") else ""
-        category = div.select_one(".catagories").text.strip() if div.select_one(".catagories") else "General"
-        deadline = div.select_one(".deadlines").text.strip() if div.select_one(".deadlines") else "Not specified"
-        jobs.append({"Source": "BDJobs", "Title": title, "Company": company, "Category": category, "Deadline": deadline})
+    for div in soup.find_all("div", class_="norm_jv"):
+        title_tag = div.find("a")
+        if title_tag:
+            title = title_tag.get_text(strip=True)
+            link = title_tag["href"]
+            deadline = "N/A"
+            jobs.append({
+                "title": f"BDJobs - {title}",
+                "link": link,
+                "deadline": deadline,
+                "category": "Private"
+            })
     return jobs
 
 def scrape_bpsc():
-    url = "http://bpsc.gov.bd/site/view/notices"
+    url = "https://bpsc.gov.bd/site/view/notices"
     r = requests.get(url, verify=False)
     soup = BeautifulSoup(r.content, "html.parser")
     jobs = []
-    for row in soup.select(".table.table-bordered tbody tr"):
-        cols = row.find_all("td")
-        if cols:
-            title = cols[1].text.strip()
-            deadline = cols[2].text.strip() if len(cols) > 2 else "Not specified"
-            jobs.append({"Source": "BPSC", "Title": title, "Company": "BPSC", "Category": "Govt", "Deadline": deadline})
+    table = soup.find("table", class_="table")
+    if table:
+        for row in table.find_all("tr")[1:]:
+            cols = row.find_all("td")
+            if len(cols) >= 2:
+                title = cols[1].get_text(strip=True)
+                deadline = "N/A"
+                link_tag = cols[1].find("a")
+                link = "https://bpsc.gov.bd" + link_tag["href"] if link_tag and link_tag.has_attr("href") else ""
+                jobs.append({
+                    "title": f"BPSC - {title}",
+                    "link": link,
+                    "deadline": deadline,
+                    "category": "Government"
+                })
     return jobs
 
 def scrape_bangladesh_bank():
     url = "https://erecruitment.bb.org.bd/"
-    r = requests.get(url, verify=False)
+    r = requests.get(url)
     soup = BeautifulSoup(r.content, "html.parser")
     jobs = []
-    for link in soup.find_all("a", href=True):
-        if "jobdetail" in link["href"]:
-            jobs.append({"Source": "BD Bank", "Title": link.text.strip(), "Company": "Bangladesh Bank", "Category": "Bank", "Deadline": "Not specified"})
+    table = soup.find("table")
+    if table:
+        for row in table.find_all("tr")[1:]:
+            cols = row.find_all("td")
+            if len(cols) >= 4:
+                title = cols[0].get_text(strip=True)
+                deadline = cols[3].get_text(strip=True)
+                link = "https://erecruitment.bb.org.bd/" + cols[0].find("a")["href"]
+                jobs.append({
+                    "title": f"Bangladesh Bank - {title}",
+                    "link": link,
+                    "deadline": deadline,
+                    "category": "Banking"
+                })
     return jobs
 
 def main():
     jobs = scrape_bdjobs() + scrape_bpsc() + scrape_bangladesh_bank()
-    df = pd.DataFrame(jobs)
-    df.to_csv("daily_jobs.csv", index=False)
+    with open("jobs_data.json", "w", encoding="utf-8") as f:
+        json.dump(jobs, f, ensure_ascii=False, indent=2)
+    print(f"Scraped {len(jobs)} jobs on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
     main()
